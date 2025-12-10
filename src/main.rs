@@ -112,6 +112,36 @@ async fn handle_websocket(mut socket: WebSocket) {
                             error!("Ошибка отправки подтверждения: {}", e);
                             return;
                         }
+                    } else if text.starts_with("text:") {
+                        // Обрабатываем текстовое сообщение
+                        let user_text = text.strip_prefix("text:").unwrap_or(&text);
+                        info!("Получен текст: {}", user_text);
+                        
+                        match groq_client.get_chat_response_with_context(user_text, &mut conversation_history).await {
+                            Ok(response) => {
+                                // Добавляем в историю
+                                conversation_history.push((user_text.to_string(), response.clone()));
+                                
+                                // Ограничиваем историю
+                                if conversation_history.len() > 50 {
+                                    conversation_history.remove(0);
+                                }
+                                
+                                info!("Ответ на текст: {}", response);
+                                if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
+                                    error!("Ошибка отправки ответа на текст: {}", e);
+                                    return;
+                                }
+                            }
+                            Err(e) => {
+                                error!("Ошибка обработки текста: {}", e);
+                                let error_msg = format!("Ошибка: {}", e);
+                                if let Err(e) = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await {
+                                    error!("Ошибка отправки ошибки: {}", e);
+                                    return;
+                                }
+                            }
+                        }
                     }
                 }
                 Ok(axum::extract::ws::Message::Close(_)) => {
