@@ -627,6 +627,28 @@ body::after {
     transform: translateY(-5px);
 }
 
+.feature {
+    position: relative;
+    cursor: grab;
+}
+
+.feature:active {
+    cursor: grabbing;
+}
+
+.feature.dragging {
+    opacity: 0.5;
+    transform: rotate(3deg);
+}
+
+.feature .drag-handle {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.7rem;
+}
+
 .feature i {
     font-size: 1.2rem;
     color: #fbbf24;
@@ -1119,6 +1141,33 @@ body::after {
 
 .stat-card:hover {
     transform: translateY(-5px);
+}
+
+.stat-card {
+    position: relative;
+    cursor: grab;
+}
+
+.stat-card:active {
+    cursor: grabbing;
+}
+
+.stat-card.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.drag-handle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    cursor: grab;
+}
+
+.drag-handle:hover {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .stat-icon {
