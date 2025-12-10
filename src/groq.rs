@@ -73,9 +73,9 @@ impl GroqClient {
             }
         ];
 
-        // Добавляем историю разговора (только последние 6 сообщений для экономии токенов)
-        let recent_history = if conversation_history.len() > 3 {
-            &conversation_history[conversation_history.len() - 3..]
+        // Добавляем историю разговора (только последние 10 сообщений для экономии токенов)
+        let recent_history = if conversation_history.len() > 5 {
+            &conversation_history[conversation_history.len() - 5..]
         } else {
             conversation_history
         };
