@@ -58,6 +58,54 @@ impl GroqClient {
             ],
         };
 
+        self.send_chat_request(request).await
+    }
+
+    pub async fn get_chat_response_with_context(
+        &self, 
+        text: &str, 
+        conversation_history: &[(String, String)]
+    ) -> Result<String> {
+        let mut messages = vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: "Ты голосовой ассистент. Отвечай кратко, не более 4-5 предложений. Отвечай на русском языке. Помни контекст предыдущих сообщений в разговоре и отвечай с учетом истории.".to_string(),
+            }
+        ];
+
+        // Добавляем историю разговора (только последние 6 сообщений для экономии токенов)
+        let recent_history = if conversation_history.len() > 3 {
+            &conversation_history[conversation_history.len() - 3..]
+        } else {
+            conversation_history
+        };
+
+        for (user_msg, assistant_msg) in recent_history {
+            messages.push(ChatMessage {
+                role: "user".to_string(),
+                content: user_msg.clone(),
+            });
+            messages.push(ChatMessage {
+                role: "assistant".to_string(),
+                content: assistant_msg.clone(),
+            });
+        }
+
+        // Добавляем текущий вопрос
+        messages.push(ChatMessage {
+            role: "user".to_string(),
+            content: text.to_string(),
+        });
+
+        let request = ChatRequest {
+            model: "openai/gpt-oss-120b".to_string(),
+            messages,
+        };
+
+        self.send_chat_request(request).await
+    }
+
+    async fn send_chat_request(&self, request: ChatRequest) -> Result<String> {
         let response = self
             .client
             .post("https://api.groq.com/openai/v1/chat/completions")
