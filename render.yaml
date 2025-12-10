@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: voice-assistant
+    env: rust
+    buildCommand: cargo build --release
+    startCommand: ./target/release/voice-assistant
+    envVars:
+      - key: PORT
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
