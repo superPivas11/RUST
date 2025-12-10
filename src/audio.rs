@@ -20,5 +20,4 @@ pub fn save_raw_as_wav(raw_data: &[u8], filename: &Path) -> Result<()> {
 
     writer.finalize()?;
     Ok(())
-
 }
