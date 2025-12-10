@@ -12,9 +12,11 @@ class VoiceAssistant {
         this.lastRequestTime = 0;
         
         this.initElements();
+        this.loadStats();
         this.initWebSocket();
         this.initAudio();
         this.bindEvents();
+        this.initDragAndDrop();
         this.startAnimations();
     }
 
@@ -28,7 +30,8 @@ class VoiceAssistant {
         this.requestCountEl = document.getElementById('requestCount');
         this.responseTimeEl = document.getElementById('responseTime');
         this.serverStatusEl = document.getElementById('serverStatus');
-        this.clearChatBtn = document.getElementById('clearChat');
+        this.statsGrid = document.getElementById('statsGrid');
+        this.heroFeatures = document.getElementById('heroFeatures');
         
         // Text input elements
         this.voiceTab = document.getElementById('voiceTab');
@@ -114,6 +117,9 @@ class VoiceAssistant {
             this.responseTimeEl.textContent = `${averageTime}ms`;
             this.requestCountEl.textContent = this.totalRequests;
             
+            // Сохраняем статистику
+            this.saveStats();
+            
             this.addMessage('assistant', event.data);
             this.recordStatus.textContent = 'Нажмите и говорите';
             this.visualizer.classList.remove('active');
@@ -186,8 +192,7 @@ class VoiceAssistant {
             this.stopRecording();
         });
 
-        // Clear chat button
-        this.clearChatBtn.addEventListener('click', () => this.clearChat());
+
 
 
 
@@ -280,29 +285,109 @@ class VoiceAssistant {
         this.ws.send(`text:${message}`);
     }
 
-    clearChat() {
-        // Очищаем интерфейс
-        this.messages.innerHTML = `
-            <div class="message assistant welcome">
-                <div class="message-avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="message-content">
-                    <div class="message-bubble">
-                        <p>🧹 Очищаю память и начинаю новый разговор...</p>
-                    </div>
-                    <div class="message-time">${this.getCurrentTime()}</div>
-                </div>
-            </div>
-        `;
-        
-        // Отправляем команду очистки контекста на сервер
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send('clear_context');
+    loadStats() {
+        const saved = localStorage.getItem('voiceAssistantStats');
+        if (saved) {
+            const stats = JSON.parse(saved);
+            this.totalRequests = stats.totalRequests || 0;
+            this.responseTimes = stats.responseTimes || [];
+            
+            // Обновляем интерфейс
+            this.requestCountEl.textContent = this.totalRequests;
+            if (this.responseTimes.length > 0) {
+                const averageTime = Math.round(this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length);
+                this.responseTimeEl.textContent = `${averageTime}ms`;
+            }
         }
         
-        // НЕ сбрасываем общую статистику - только очищаем чат
-        // this.totalRequests и this.responseTimes остаются для общей статистики
+        // Загружаем порядок карточек
+        this.loadCardOrder();
+    }
+
+    saveStats() {
+        const stats = {
+            totalRequests: this.totalRequests,
+            responseTimes: this.responseTimes
+        };
+        localStorage.setItem('voiceAssistantStats', JSON.stringify(stats));
+    }
+
+    loadCardOrder() {
+        const statsOrder = localStorage.getItem('statsOrder');
+        const featuresOrder = localStorage.getItem('featuresOrder');
+        
+        if (statsOrder) {
+            this.reorderCards(this.statsGrid, JSON.parse(statsOrder));
+        }
+        
+        if (featuresOrder) {
+            this.reorderCards(this.heroFeatures, JSON.parse(featuresOrder));
+        }
+    }
+
+    saveCardOrder(container, order) {
+        const key = container.id === 'statsGrid' ? 'statsOrder' : 'featuresOrder';
+        localStorage.setItem(key, JSON.stringify(order));
+    }
+
+    reorderCards(container, order) {
+        const cards = Array.from(container.children);
+        order.forEach(id => {
+            const card = cards.find(c => c.dataset.id === id);
+            if (card) {
+                container.appendChild(card);
+            }
+        });
+    }
+
+    initDragAndDrop() {
+        [this.statsGrid, this.heroFeatures].forEach(container => {
+            this.setupDragAndDrop(container);
+        });
+    }
+
+    setupDragAndDrop(container) {
+        let draggedElement = null;
+
+        container.addEventListener('dragstart', (e) => {
+            draggedElement = e.target.closest('[draggable="true"]');
+            if (draggedElement) {
+                draggedElement.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+
+        container.addEventListener('dragend', (e) => {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const dropTarget = e.target.closest('[draggable="true"]');
+            
+            if (draggedElement && dropTarget && draggedElement !== dropTarget) {
+                const rect = dropTarget.getBoundingClientRect();
+                const isAfter = e.clientX > rect.left + rect.width / 2;
+                
+                if (isAfter) {
+                    dropTarget.parentNode.insertBefore(draggedElement, dropTarget.nextSibling);
+                } else {
+                    dropTarget.parentNode.insertBefore(draggedElement, dropTarget);
+                }
+                
+                // Сохраняем новый порядок
+                const order = Array.from(container.children).map(card => card.dataset.id);
+                this.saveCardOrder(container, order);
+            }
+        });
     }
 
     getCurrentTime() {
