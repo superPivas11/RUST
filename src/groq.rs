@@ -49,7 +49,7 @@ impl GroqClient {
             messages: vec![
                 ChatMessage {
                     role: "system".to_string(),
-                    content: "Ты голосовой ассистент. Отвечай по возможности кратко, не более 2 - 3 предложений. Отвечай на русском языке.".to_string(),
+                    content: "Ты голосовой ассистент. Отвечай по возможности кратко, не более 4-5 предложений. Отвечай на русском языке.".to_string(),
                 },
                 ChatMessage {
                     role: "user".to_string(),
