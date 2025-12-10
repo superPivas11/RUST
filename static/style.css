@@ -935,6 +935,7 @@ body::after {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+    opacity: 0.6;
 }
 
 .text-hint {
