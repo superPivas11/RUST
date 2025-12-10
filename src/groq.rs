@@ -45,11 +45,11 @@ impl GroqClient {
 
     pub async fn get_chat_response(&self, text: &str) -> Result<String> {
         let request = ChatRequest {
-            model: "moonshotai/kimi-k2-instruct".to_string(),
+            model: "openai/gpt-oss-120b".to_string(),
             messages: vec![
                 ChatMessage {
                     role: "system".to_string(),
-                    content: "Ты голосовой ассистент. Отвечай очень кратко, не более 10 слов. Отвечай на русском языке.".to_string(),
+                    content: "Ты голосовой ассистент. Отвечай по возможности кратко, не более 4-5 предложений. Отвечай на русском языке.".to_string(),
                 },
                 ChatMessage {
                     role: "user".to_string(),
@@ -110,5 +110,4 @@ impl GroqClient {
         let transcription: TranscriptionResponse = response.json().await?;
         Ok(transcription.text)
     }
-
 }
