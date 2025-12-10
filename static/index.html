@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎤 AI Voice Assistant</title>
+    <title>AI Voice Assistant</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,18 +50,21 @@
                 <p class="hero-subtitle">
                     Продвинутый ИИ с распознаванием речи на базе Rust и Groq API
                 </p>
-                <div class="hero-features">
-                    <div class="feature">
+                <div class="hero-features" id="heroFeatures">
+                    <div class="feature" draggable="true" data-id="speed">
                         <i class="fas fa-bolt"></i>
                         <span>Быстрый ответ</span>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
-                    <div class="feature">
+                    <div class="feature" draggable="true" data-id="ai">
                         <i class="fas fa-brain"></i>
                         <span>Умный ИИ</span>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
-                    <div class="feature">
+                    <div class="feature" draggable="true" data-id="security">
                         <i class="fas fa-shield-alt"></i>
                         <span>Безопасно</span>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
                 </div>
             </div>
@@ -75,9 +78,6 @@
                         <i class="fas fa-comments"></i>
                         <span>Диалог с ассистентом</span>
                     </div>
-                    <button class="clear-chat" id="clearChat">
-                        <i class="fas fa-trash"></i>
-                    </button>
                 </div>
                 
                 <div class="messages-wrapper">
@@ -186,8 +186,8 @@
         <!-- Stats Dashboard -->
         <section class="stats-section">
             <div class="stats-container">
-                <div class="stats-grid">
-                    <div class="stat-card">
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card" draggable="true" data-id="requests">
                         <div class="stat-icon">
                             <i class="fas fa-comments"></i>
                         </div>
@@ -195,9 +195,10 @@
                             <div class="stat-value" id="requestCount">0</div>
                             <div class="stat-label">Всего запросов</div>
                         </div>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
                     
-                    <div class="stat-card">
+                    <div class="stat-card" draggable="true" data-id="response">
                         <div class="stat-icon">
                             <i class="fas fa-stopwatch"></i>
                         </div>
@@ -205,9 +206,10 @@
                             <div class="stat-value" id="responseTime">-</div>
                             <div class="stat-label">Среднее время ответа</div>
                         </div>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
                     
-                    <div class="stat-card">
+                    <div class="stat-card" draggable="true" data-id="server">
                         <div class="stat-icon">
                             <i class="fas fa-server"></i>
                         </div>
@@ -215,9 +217,10 @@
                             <div class="stat-value" id="serverStatus">Online</div>
                             <div class="stat-label">Статус сервера</div>
                         </div>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
                     
-                    <div class="stat-card">
+                    <div class="stat-card" draggable="true" data-id="tech">
                         <div class="stat-icon">
                             <i class="fas fa-microchip"></i>
                         </div>
@@ -225,6 +228,7 @@
                             <div class="stat-value">Rust</div>
                             <div class="stat-label">Технология</div>
                         </div>
+                        <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
                     </div>
                 </div>
             </div>
