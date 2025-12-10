@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎤 AI Voice Assistant</title>
+    <title>AI Voice Assistant</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -113,16 +113,56 @@
                     </div>
                 </div>
 
-                <div class="record-controls">
-                    <button class="record-btn" id="recordBtn">
-                        <div class="btn-inner">
-                            <i class="fas fa-microphone record-icon"></i>
-                            <div class="ripple"></div>
-                        </div>
+                <div class="input-tabs">
+                    <button class="tab-btn active" id="voiceTab">
+                        <i class="fas fa-microphone"></i>
+                        <span>Голос</span>
                     </button>
-                    <div class="record-text">
-                        <span class="record-status" id="recordStatus">Нажмите и говорите</span>
-                        <span class="record-hint">Удерживайте для записи</span>
+                    <button class="tab-btn" id="textTab">
+                        <i class="fas fa-keyboard"></i>
+                        <span>Текст</span>
+                    </button>
+                </div>
+
+                <div class="input-container">
+                    <!-- Voice Input -->
+                    <div class="input-section voice-input active" id="voiceInput">
+                        <div class="record-controls">
+                            <button class="record-btn" id="recordBtn">
+                                <div class="btn-inner">
+                                    <i class="fas fa-microphone record-icon"></i>
+                                    <div class="ripple"></div>
+                                </div>
+                            </button>
+                            <div class="record-text">
+                                <span class="record-status" id="recordStatus">Нажмите и говорите</span>
+                                <span class="record-hint">Удерживайте для записи</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div class="input-section text-input" id="textInput">
+                        <div class="text-controls">
+                            <div class="text-input-wrapper">
+                                <textarea 
+                                    id="messageInput" 
+                                    placeholder="Введите ваш вопрос здесь..."
+                                    rows="3"
+                                    maxlength="500"
+                                ></textarea>
+                                <div class="input-actions">
+                                    <span class="char-counter" id="charCounter">0/500</span>
+                                    <button class="send-btn" id="sendBtn">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-hint">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Нажмите Enter для отправки или используйте кнопку</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
