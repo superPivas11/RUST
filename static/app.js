@@ -25,6 +25,15 @@ class VoiceAssistant {
         this.responseTimeEl = document.getElementById('responseTime');
         this.serverStatusEl = document.getElementById('serverStatus');
         this.clearChatBtn = document.getElementById('clearChat');
+        
+        // Text input elements
+        this.voiceTab = document.getElementById('voiceTab');
+        this.textTab = document.getElementById('textTab');
+        this.voiceInput = document.getElementById('voiceInput');
+        this.textInput = document.getElementById('textInput');
+        this.messageInput = document.getElementById('messageInput');
+        this.sendBtn = document.getElementById('sendBtn');
+        this.charCounter = document.getElementById('charCounter');
     }
 
     startAnimations() {
@@ -183,6 +192,69 @@ class VoiceAssistant {
                 this.ws.close(1000, 'Page unload');
             }
         });
+
+        // Tab switching
+        this.voiceTab.addEventListener('click', () => this.switchTab('voice'));
+        this.textTab.addEventListener('click', () => this.switchTab('text'));
+
+        // Text input events
+        this.sendBtn.addEventListener('click', () => this.sendTextMessage());
+        this.messageInput.addEventListener('input', () => this.updateCharCounter());
+        this.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendTextMessage();
+            }
+        });
+    }
+
+    switchTab(tab) {
+        if (tab === 'voice') {
+            this.voiceTab.classList.add('active');
+            this.textTab.classList.remove('active');
+            this.voiceInput.classList.add('active');
+            this.textInput.classList.remove('active');
+        } else {
+            this.textTab.classList.add('active');
+            this.voiceTab.classList.remove('active');
+            this.textInput.classList.add('active');
+            this.voiceInput.classList.remove('active');
+        }
+    }
+
+    updateCharCounter() {
+        const length = this.messageInput.value.length;
+        this.charCounter.textContent = `${length}/500`;
+        
+        if (length > 450) {
+            this.charCounter.style.color = '#ef4444';
+        } else if (length > 400) {
+            this.charCounter.style.color = '#f59e0b';
+        } else {
+            this.charCounter.style.color = '#6b7280';
+        }
+
+        this.sendBtn.disabled = length === 0 || length > 500;
+    }
+
+    async sendTextMessage() {
+        const message = this.messageInput.value.trim();
+        if (!message || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+        // Добавляем сообщение пользователя
+        this.addMessage('user', message);
+        
+        // Очищаем поле ввода
+        this.messageInput.value = '';
+        this.updateCharCounter();
+
+        // Отправляем текст напрямую через WebSocket
+        this.startTime = Date.now();
+        this.requestCount++;
+        this.requestCountEl.textContent = this.requestCount;
+
+        // Отправляем как текстовое сообщение с префиксом
+        this.ws.send(`text:${message}`);
     }
 
     clearChat() {
