@@ -75,49 +75,70 @@ async fn handle_websocket(mut socket: WebSocket) {
         .unwrap_or_else(|_| "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".to_string());
     
     let groq_client = GroqClient::new(groq_api_key);
-    let mut all_data = Vec::new();
 
-    // Получаем аудио данные
-    while let Some(msg) = socket.recv().await {
-        match msg {
-            Ok(axum::extract::ws::Message::Binary(data)) => {
-                // Проверяем на END_STREAM маркер
-                if let Some(pos) = data.windows(10).position(|window| window == b"END_STREAM") {
-                    // Добавляем данные до маркера
-                    all_data.extend_from_slice(&data[..pos]);
-                    break;
+    // Основной цикл обработки сообщений
+    loop {
+        let mut all_data = Vec::new();
+        let mut recording = false;
+
+        // Получаем аудио данные до END_STREAM
+        while let Some(msg) = socket.recv().await {
+            match msg {
+                Ok(axum::extract::ws::Message::Binary(data)) => {
+                    recording = true;
+                    // Проверяем на END_STREAM маркер
+                    if let Some(pos) = data.windows(10).position(|window| window == b"END_STREAM") {
+                        // Добавляем данные до маркера
+                        all_data.extend_from_slice(&data[..pos]);
+                        break; // Выходим из внутреннего цикла для обработки
+                    }
+                    all_data.extend_from_slice(&data);
                 }
-                all_data.extend_from_slice(&data);
-            }
-            Ok(axum::extract::ws::Message::Close(_)) => break,
-            Err(e) => {
-                error!("Ошибка WebSocket: {}", e);
-                break;
-            }
-            _ => {}
-        }
-    }
-
-    info!("Получено {} байт аудио", all_data.len());
-
-    // Обработка аудио
-    if all_data.is_empty() {
-        error!("Получены пустые аудио данные");
-        let _ = socket.send(axum::extract::ws::Message::Text("Нет аудио данных".to_string().into())).await;
-        return;
-    }
-
-    match process_audio(&groq_client, all_data).await {
-        Ok(response) => {
-            info!("Ответ: {}", response);
-            if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
-                error!("Ошибка отправки ответа: {}", e);
+                Ok(axum::extract::ws::Message::Text(text)) => {
+                    if text == "ping" {
+                        // Отвечаем на ping для поддержания соединения
+                        if let Err(e) = socket.send(axum::extract::ws::Message::Text("pong".into())).await {
+                            error!("Ошибка отправки pong: {}", e);
+                            return;
+                        }
+                    }
+                }
+                Ok(axum::extract::ws::Message::Close(_)) => {
+                    info!("Клиент отключился");
+                    return;
+                }
+                Err(e) => {
+                    error!("Ошибка WebSocket: {}", e);
+                    return;
+                }
+                _ => {}
             }
         }
-        Err(e) => {
-            error!("Ошибка обработки: {}", e);
-            let error_msg = format!("Ошибка: {}", e);
-            let _ = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await;
+
+        // Если получили данные, обрабатываем их
+        if recording && !all_data.is_empty() {
+            info!("Получено {} байт аудио", all_data.len());
+
+            match process_audio(&groq_client, all_data).await {
+                Ok(response) => {
+                    info!("Ответ: {}", response);
+                    if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
+                        error!("Ошибка отправки ответа: {}", e);
+                        return;
+                    }
+                }
+                Err(e) => {
+                    error!("Ошибка обработки: {}", e);
+                    let error_msg = format!("Ошибка: {}", e);
+                    if let Err(e) = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await {
+                        error!("Ошибка отправки ошибки: {}", e);
+                        return;
+                    }
+                }
+            }
+        } else if recording {
+            // Если была запись, но данных нет
+            let _ = socket.send(axum::extract::ws::Message::Text("Нет аудио данных".to_string().into())).await;
         }
     }
 }
