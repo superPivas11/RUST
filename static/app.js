@@ -6,6 +6,8 @@ class VoiceAssistant {
         this.isRecording = false;
         this.isProcessing = false;
         this.requestCount = 0;
+        this.totalRequests = 0;
+        this.responseTimes = [];
         this.startTime = null;
         this.lastRequestTime = 0;
         
@@ -100,7 +102,17 @@ class VoiceAssistant {
             }
             
             const responseTime = Date.now() - this.startTime;
-            this.responseTimeEl.textContent = `${responseTime}ms`;
+            
+            // Добавляем время ответа в массив для подсчета среднего
+            this.responseTimes.push(responseTime);
+            this.totalRequests++;
+            
+            // Вычисляем среднее время ответа
+            const averageTime = Math.round(this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length);
+            
+            // Обновляем статистику
+            this.responseTimeEl.textContent = `${averageTime}ms`;
+            this.requestCountEl.textContent = this.totalRequests;
             
             this.addMessage('assistant', event.data);
             this.recordStatus.textContent = 'Нажмите и говорите';
@@ -260,8 +272,6 @@ class VoiceAssistant {
 
         // Отправляем текст напрямую через WebSocket
         this.startTime = Date.now();
-        this.requestCount++;
-        this.requestCountEl.textContent = this.requestCount;
 
         // Отправляем как текстовое сообщение с префиксом
         this.ws.send(`text:${message}`);
@@ -288,9 +298,8 @@ class VoiceAssistant {
             this.ws.send('clear_context');
         }
         
-        this.requestCount = 0;
-        this.requestCountEl.textContent = '0';
-        this.responseTimeEl.textContent = '-';
+        // НЕ сбрасываем общую статистику - только очищаем чат
+        // this.totalRequests и this.responseTimes остаются для общей статистики
     }
 
     getCurrentTime() {
