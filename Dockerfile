@@ -1,12 +1,10 @@
-# Используем официальный Rust образ
-FROM rust:1.75 as builder
+# Используем последнюю версию Rust
+FROM rust:1.82 as builder
 
 WORKDIR /app
 
-# Копируем файлы зависимостей
-COPY Cargo.toml Cargo.lock ./
-
-# Копируем исходный код
+# Копируем файлы проекта
+COPY Cargo.toml ./
 COPY src ./src
 
 # Собираем приложение
