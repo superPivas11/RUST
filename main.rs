@@ -120,4 +120,5 @@ async fn process_audio(groq_client: &GroqClient, audio_data: Vec<u8>) -> anyhow:
     let answer = groq_client.get_chat_response(&text).await?;
     
     Ok(answer)
+
 }
