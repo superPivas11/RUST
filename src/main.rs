@@ -176,8 +176,8 @@ async fn process_audio_with_context(
     // Добавляем в историю разговора
     conversation_history.push((text.clone(), answer.clone()));
     
-    // Ограничиваем историю последними 10 сообщениями для экономии памяти
-    if conversation_history.len() > 10 {
+    // Ограничиваем историю последними 50 сообщениями для экономии памяти
+    if conversation_history.len() > 50 {
         conversation_history.remove(0);
     }
     
