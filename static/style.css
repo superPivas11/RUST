@@ -984,12 +984,12 @@ body {
 }
 
 .footer-info {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(0, 0, 0, 0.7);
     line-height: 1.6;
 }
 
 .footer-info strong {
-    color: white;
+    color: rgba(0, 0, 0, 0.9);
     font-weight: 600;
 }
 
@@ -1004,16 +1004,16 @@ body {
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-xs) var(--spacing-sm);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: var(--border-radius-lg);
-    color: white;
+    color: rgba(0, 0, 0, 0.8);
     font-size: 0.85rem;
     font-weight: 500;
 }
 
 .tech-badge i {
-    color: #fbbf24;
+    color: #f59e0b;
 }
 
 /* Animations */
