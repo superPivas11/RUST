@@ -110,4 +110,5 @@ impl GroqClient {
         let transcription: TranscriptionResponse = response.json().await?;
         Ok(transcription.text)
     }
+
 }
