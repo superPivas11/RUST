@@ -69,11 +69,10 @@ async fn handle_websocket(mut socket: WebSocket) {
     while let Some(msg) = socket.recv().await {
         match msg {
             Ok(axum::extract::ws::Message::Binary(data)) => {
-                if data.windows(10).any(|window| window == b"END_STREAM") {
-                    // Удаляем маркер END_STREAM и добавляем оставшиеся данные
-                    let data_str = String::from_utf8_lossy(&data);
-                    let clean_str = data_str.replace("END_STREAM", "");
-                    all_data.extend_from_slice(clean_str.as_bytes());
+                // Проверяем на END_STREAM маркер
+                if let Some(pos) = data.windows(10).position(|window| window == b"END_STREAM") {
+                    // Добавляем данные до маркера
+                    all_data.extend_from_slice(&data[..pos]);
                     break;
                 }
                 all_data.extend_from_slice(&data);
@@ -120,5 +119,4 @@ async fn process_audio(groq_client: &GroqClient, audio_data: Vec<u8>) -> anyhow:
     let answer = groq_client.get_chat_response(&text).await?;
     
     Ok(answer)
-
 }
