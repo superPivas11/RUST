@@ -97,21 +97,21 @@ async fn handle_websocket(mut socket: WebSocket) {
     // Обработка аудио
     if all_data.is_empty() {
         error!("Получены пустые аудио данные");
-        let _ = socket.send(axum::extract::ws::Message::Text("Нет аудио данных".to_string())).await;
+        let _ = socket.send(axum::extract::ws::Message::Text("Нет аудио данных".to_string().into())).await;
         return;
     }
 
     match process_audio(&groq_client, all_data).await {
         Ok(response) => {
             info!("Ответ: {}", response);
-            if let Err(e) = socket.send(axum::extract::ws::Message::Text(response)).await {
+            if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
                 error!("Ошибка отправки ответа: {}", e);
             }
         }
         Err(e) => {
             error!("Ошибка обработки: {}", e);
             let error_msg = format!("Ошибка: {}", e);
-            let _ = socket.send(axum::extract::ws::Message::Text(error_msg)).await;
+            let _ = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await;
         }
     }
 }
