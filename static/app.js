@@ -120,9 +120,8 @@ class VoiceAssistant {
             
             // Разблокируем интерфейс
             this.isProcessing = false;
-            this.sendBtn.disabled = false;
             this.recordBtn.disabled = false;
-            this.updateCharCounter(); // Обновляем состояние кнопки отправки
+            this.updateCharCounter(); // Обновляем состояние кнопки отправки правильно
         };
     }
 
@@ -213,6 +212,9 @@ class VoiceAssistant {
                 this.sendTextMessage();
             }
         });
+
+        // Инициализируем состояние кнопки
+        this.updateCharCounter();
     }
 
     switchTab(tab) {
@@ -241,7 +243,8 @@ class VoiceAssistant {
             this.charCounter.style.color = '#6b7280';
         }
 
-        this.sendBtn.disabled = length === 0 || length > 500;
+        // Кнопка активна если есть текст, не превышен лимит и не идет обработка
+        this.sendBtn.disabled = length === 0 || length > 500 || this.isProcessing;
     }
 
     async sendTextMessage() {
