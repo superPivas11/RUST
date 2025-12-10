@@ -32,7 +32,12 @@
 
 body {
     font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--primary-gradient);
+    background: 
+        linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%),
+        url('https://media.discordapp.net/attachments/1232757347936501860/1448308504434835456/99px_ru_animacii_39136_mashiro_shiina__mashiro_shina_iz_anime_koshechka.gif?ex=693ac9e7&is=69397867&hm=73e30916f862aa5cbc6d674e5d0b837f187d69435c993ff8359d53368f200afc&=');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     min-height: 100vh;
     color: var(--text-primary);
     overflow-x: hidden;
@@ -48,6 +53,7 @@ body {
     height: 100%;
     z-index: -1;
     overflow: hidden;
+    backdrop-filter: blur(2px);
 }
 
 .floating-shapes {
