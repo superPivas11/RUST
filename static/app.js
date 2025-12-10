@@ -45,18 +45,35 @@ class VoiceAssistant {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
         
+        this.connectWebSocket(wsUrl);
+    }
+
+    connectWebSocket(wsUrl) {
         this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {
             this.updateStatus('online', 'Подключено');
             this.serverStatusEl.textContent = 'Online';
             this.addMessage('assistant', '✅ Подключение установлено! Можно начинать разговор.');
+            
+            // Запускаем ping для поддержания соединения
+            this.startPing();
         };
         
-        this.ws.onclose = () => {
+        this.ws.onclose = (event) => {
             this.updateStatus('offline', 'Отключено');
             this.serverStatusEl.textContent = 'Offline';
-            this.addMessage('assistant', '❌ Соединение потеряно. Попробуйте обновить страницу.');
+            
+            // Останавливаем ping
+            this.stopPing();
+            
+            // Автоматическое переподключение через 3 секунды
+            if (!event.wasClean) {
+                this.addMessage('assistant', '🔄 Соединение потеряно. Переподключение через 3 секунды...');
+                setTimeout(() => {
+                    this.connectWebSocket(wsUrl);
+                }, 3000);
+            }
         };
         
         this.ws.onerror = (error) => {
@@ -66,6 +83,11 @@ class VoiceAssistant {
         };
         
         this.ws.onmessage = (event) => {
+            if (event.data === 'pong') {
+                // Игнорируем pong сообщения
+                return;
+            }
+            
             const responseTime = Date.now() - this.startTime;
             this.responseTimeEl.textContent = `${responseTime}ms`;
             
@@ -73,6 +95,21 @@ class VoiceAssistant {
             this.recordStatus.textContent = 'Нажмите и говорите';
             this.visualizer.classList.remove('active');
         };
+    }
+
+    startPing() {
+        this.pingInterval = setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send('ping');
+            }
+        }, 30000); // Ping каждые 30 секунд
+    }
+
+    stopPing() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
     }
 
     async initAudio() {
@@ -136,6 +173,14 @@ class VoiceAssistant {
             if (e.code === 'Space' && this.isRecording) {
                 e.preventDefault();
                 this.stopRecording();
+            }
+        });
+
+        // Закрываем соединение при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            this.stopPing();
+            if (this.ws) {
+                this.ws.close(1000, 'Page unload');
             }
         });
     }
