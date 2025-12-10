@@ -1,0 +1,12 @@
+target/
+.git/
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+render.yaml
+railway.toml
+start.sh
+build.sh
+test_client.html
+py.py
