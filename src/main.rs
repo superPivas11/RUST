@@ -75,6 +75,9 @@ async fn handle_websocket(mut socket: WebSocket) {
         .unwrap_or_else(|_| "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".to_string());
     
     let groq_client = GroqClient::new(groq_api_key);
+    
+    // История разговора для этого соединения
+    let mut conversation_history: Vec<(String, String)> = Vec::new();
 
     // Основной цикл обработки сообщений
     loop {
@@ -101,6 +104,14 @@ async fn handle_websocket(mut socket: WebSocket) {
                             error!("Ошибка отправки pong: {}", e);
                             return;
                         }
+                    } else if text == "clear_context" {
+                        // Очищаем контекст разговора
+                        conversation_history.clear();
+                        info!("Контекст разговора очищен");
+                        if let Err(e) = socket.send(axum::extract::ws::Message::Text("Контекст очищен! Начинаем новый разговор.".into())).await {
+                            error!("Ошибка отправки подтверждения: {}", e);
+                            return;
+                        }
                     }
                 }
                 Ok(axum::extract::ws::Message::Close(_)) => {
@@ -119,7 +130,7 @@ async fn handle_websocket(mut socket: WebSocket) {
         if recording && !all_data.is_empty() {
             info!("Получено {} байт аудио", all_data.len());
 
-            match process_audio(&groq_client, all_data).await {
+            match process_audio_with_context(&groq_client, all_data, &mut conversation_history).await {
                 Ok(response) => {
                     info!("Ответ: {}", response);
                     if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
@@ -143,7 +154,11 @@ async fn handle_websocket(mut socket: WebSocket) {
     }
 }
 
-async fn process_audio(groq_client: &GroqClient, audio_data: Vec<u8>) -> anyhow::Result<String> {
+async fn process_audio_with_context(
+    groq_client: &GroqClient, 
+    audio_data: Vec<u8>, 
+    conversation_history: &mut Vec<(String, String)>
+) -> anyhow::Result<String> {
     // Создаем временный файл
     let temp_file = tempfile::NamedTempFile::with_suffix(".wav")?;
     let temp_path = temp_file.path();
@@ -155,8 +170,18 @@ async fn process_audio(groq_client: &GroqClient, audio_data: Vec<u8>) -> anyhow:
     let text = groq_client.transcribe_audio(temp_path).await?;
     info!("Распознано: {}", text);
 
-    // Получаем ответ от AI
-    let answer = groq_client.get_chat_response(&text).await?;
+    // Получаем ответ от AI с контекстом
+    let answer = groq_client.get_chat_response_with_context(&text, conversation_history).await?;
+    
+    // Добавляем в историю разговора
+    conversation_history.push((text.clone(), answer.clone()));
+    
+    // Ограничиваем историю последними 10 сообщениями для экономии памяти
+    if conversation_history.len() > 10 {
+        conversation_history.remove(0);
+    }
+    
+    info!("История разговора: {} сообщений", conversation_history.len());
     
     Ok(answer)
 }
