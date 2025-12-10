@@ -27,9 +27,12 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let port = env::var("PORT")
-        .unwrap_or_else(|_| "8080".to_string())
+        .unwrap_or_else(|_| "3000".to_string())
         .parse::<u16>()
-        .unwrap_or(8080);
+        .unwrap_or(3000);
+    
+    info!("Используется порт: {}", port);
+    info!("PORT env var: {:?}", env::var("PORT"));
 
     let app = Router::new()
         .route("/", get(root))
@@ -58,6 +61,9 @@ async fn websocket_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
 
 async fn handle_websocket(mut socket: WebSocket) {
     info!("Клиент подключен");
+    
+    // Проверяем переменные окружения
+    info!("GROQ_API_KEY установлен: {}", env::var("GROQ_API_KEY").is_ok());
 
     let groq_api_key = env::var("GROQ_API_KEY")
         .unwrap_or_else(|_| "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".to_string());
@@ -89,6 +95,12 @@ async fn handle_websocket(mut socket: WebSocket) {
     info!("Получено {} байт аудио", all_data.len());
 
     // Обработка аудио
+    if all_data.is_empty() {
+        error!("Получены пустые аудио данные");
+        let _ = socket.send(axum::extract::ws::Message::Text("Нет аудио данных".to_string())).await;
+        return;
+    }
+
     match process_audio(&groq_client, all_data).await {
         Ok(response) => {
             info!("Ответ: {}", response);
@@ -98,7 +110,8 @@ async fn handle_websocket(mut socket: WebSocket) {
         }
         Err(e) => {
             error!("Ошибка обработки: {}", e);
-            let _ = socket.send(axum::extract::ws::Message::Text("Error".to_string())).await;
+            let error_msg = format!("Ошибка: {}", e);
+            let _ = socket.send(axum::extract::ws::Message::Text(error_msg)).await;
         }
     }
 }
