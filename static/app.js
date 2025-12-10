@@ -4,8 +4,11 @@ class VoiceAssistant {
         this.mediaRecorder = null;
         this.audioChunks = [];
         this.isRecording = false;
+        this.isProcessing = false;
         this.requestCount = 0;
         this.startTime = null;
+        this.lastRequestTime = 0;
+        this.spacePressed = false;
         
         this.initElements();
         this.initWebSocket();
@@ -103,6 +106,12 @@ class VoiceAssistant {
             this.addMessage('assistant', event.data);
             this.recordStatus.textContent = 'Нажмите и говорите';
             this.visualizer.classList.remove('active');
+            
+            // Разблокируем интерфейс
+            this.isProcessing = false;
+            this.sendBtn.disabled = false;
+            this.recordBtn.disabled = false;
+            this.updateCharCounter(); // Обновляем состояние кнопки отправки
         };
     }
 
@@ -170,17 +179,23 @@ class VoiceAssistant {
         // Clear chat button
         this.clearChatBtn.addEventListener('click', () => this.clearChat());
 
-        // Keyboard shortcuts
+        // Keyboard shortcuts with spam protection
+        this.spacePressed = false;
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !this.isRecording) {
-                e.preventDefault();
-                this.startRecording();
+            if (e.code === 'Space' && !this.isRecording && !this.spacePressed && !this.isProcessing) {
+                // Проверяем что фокус не на текстовом поле
+                if (document.activeElement !== this.messageInput) {
+                    e.preventDefault();
+                    this.spacePressed = true;
+                    this.startRecording();
+                }
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            if (e.code === 'Space' && this.isRecording) {
+            if (e.code === 'Space' && this.isRecording && this.spacePressed) {
                 e.preventDefault();
+                this.spacePressed = false;
                 this.stopRecording();
             }
         });
@@ -239,7 +254,18 @@ class VoiceAssistant {
 
     async sendTextMessage() {
         const message = this.messageInput.value.trim();
-        if (!message || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+        if (!message || !this.ws || this.ws.readyState !== WebSocket.OPEN || this.isProcessing) return;
+
+        // Проверяем таймаут 5 секунд
+        const now = Date.now();
+        if (now - this.lastRequestTime < 5000) {
+            const remaining = Math.ceil((5000 - (now - this.lastRequestTime)) / 1000);
+            this.addMessage('assistant', `⏱️ Подождите ${remaining} секунд перед следующим запросом`);
+            return;
+        }
+
+        this.isProcessing = true;
+        this.lastRequestTime = now;
 
         // Добавляем сообщение пользователя
         this.addMessage('user', message);
@@ -247,6 +273,10 @@ class VoiceAssistant {
         // Очищаем поле ввода
         this.messageInput.value = '';
         this.updateCharCounter();
+
+        // Блокируем кнопки
+        this.sendBtn.disabled = true;
+        this.recordBtn.disabled = true;
 
         // Отправляем текст напрямую через WebSocket
         this.startTime = Date.now();
@@ -291,7 +321,15 @@ class VoiceAssistant {
     }
 
     startRecording() {
-        if (!this.mediaRecorder || this.isRecording) return;
+        if (!this.mediaRecorder || this.isRecording || this.isProcessing) return;
+        
+        // Проверяем таймаут 5 секунд
+        const now = Date.now();
+        if (now - this.lastRequestTime < 5000) {
+            const remaining = Math.ceil((5000 - (now - this.lastRequestTime)) / 1000);
+            this.recordStatus.textContent = `Подождите ${remaining} сек.`;
+            return;
+        }
         
         this.isRecording = true;
         this.audioChunks = [];
