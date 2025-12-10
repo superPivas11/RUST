@@ -186,6 +186,7 @@ class VoiceAssistant {
     }
 
     clearChat() {
+        // Очищаем интерфейс
         this.messages.innerHTML = `
             <div class="message assistant welcome">
                 <div class="message-avatar">
@@ -193,12 +194,18 @@ class VoiceAssistant {
                 </div>
                 <div class="message-content">
                     <div class="message-bubble">
-                        <p>👋 Чат очищен! Можете начать новый разговор.</p>
+                        <p>🧹 Очищаю память и начинаю новый разговор...</p>
                     </div>
                     <div class="message-time">${this.getCurrentTime()}</div>
                 </div>
             </div>
         `;
+        
+        // Отправляем команду очистки контекста на сервер
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send('clear_context');
+        }
+        
         this.requestCount = 0;
         this.requestCountEl.textContent = '0';
         this.responseTimeEl.textContent = '-';
