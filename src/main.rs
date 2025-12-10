@@ -1,12 +1,12 @@
 use axum::{
     extract::{ws::WebSocket, WebSocketUpgrade},
-    response::{IntoResponse, Json},
+    response::{IntoResponse, Json, Html},
     routing::{get, any},
     Router,
 };
 use serde::Serialize;
 use std::{env, net::SocketAddr};
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 use tracing::{error, info};
 
 mod groq;
@@ -35,8 +35,10 @@ async fn main() -> anyhow::Result<()> {
     info!("PORT env var: {:?}", env::var("PORT"));
 
     let app = Router::new()
-        .route("/", get(root))
+        .route("/", get(serve_index))
+        .route("/api/status", get(api_status))
         .route("/ws", any(websocket_handler))
+        .nest_service("/static", ServeDir::new("static"))
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
@@ -48,7 +50,11 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn root() -> impl IntoResponse {
+async fn serve_index() -> impl IntoResponse {
+    Html(include_str!("../static/index.html"))
+}
+
+async fn api_status() -> impl IntoResponse {
     Json(StatusResponse {
         status: "ok".to_string(),
         message: "Voice Assistant Server".to_string(),
