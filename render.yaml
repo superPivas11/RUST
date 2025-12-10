@@ -2,10 +2,11 @@ services:
   - type: web
     name: voice-assistant
     env: rust
-    buildCommand: cargo build --release
-    startCommand: ./target/release/voice-assistant
+    buildCommand: cargo build --release && chmod +x start.sh
+    startCommand: ./start.sh
+    plan: free
     envVars:
       - key: PORT
-        sync: false
+        value: 10000
       - key: GROQ_API_KEY
         sync: false
