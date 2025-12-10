@@ -6,6 +6,7 @@ WORKDIR /app
 # Копируем файлы проекта
 COPY Cargo.toml ./
 COPY src ./src
+COPY static ./static
 
 # Собираем приложение
 RUN cargo build --release
@@ -20,8 +21,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Копируем скомпилированный бинарник
+# Копируем скомпилированный бинарник и статические файлы
 COPY --from=builder /app/target/release/voice-assistant .
+COPY --from=builder /app/static ./static
 
 # Делаем исполняемым
 RUN chmod +x voice-assistant
