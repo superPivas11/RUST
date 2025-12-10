@@ -1,5 +1,5 @@
-# Используем последнюю версию Rust
-FROM rust:1.82 as builder
+# Используем самую последнюю версию Rust
+FROM rust:latest as builder
 
 WORKDIR /app
 
