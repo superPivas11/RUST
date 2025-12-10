@@ -78,6 +78,13 @@ async fn handle_websocket(mut socket: WebSocket) {
     
     // История разговора для этого соединения
     let mut conversation_history: Vec<(String, String)> = Vec::new();
+    
+    // Очередь запросов и состояние обработки
+    let mut is_processing = false;
+    let mut last_request_time = std::time::Instant::now();
+    
+    // Определяем тип клиента (веб или ESP32) по User-Agent
+    let is_web_client = true; // Пока считаем что все веб-клиенты, ESP32 определим по другому
 
     // Основной цикл обработки сообщений
     loop {
@@ -113,6 +120,30 @@ async fn handle_websocket(mut socket: WebSocket) {
                             return;
                         }
                     } else if text.starts_with("text:") {
+                        // Проверяем таймаут для веб-клиентов (5 секунд)
+                        let now = std::time::Instant::now();
+                        if is_web_client && now.duration_since(last_request_time).as_secs() < 5 {
+                            let remaining = 5 - now.duration_since(last_request_time).as_secs();
+                            let error_msg = format!("Подождите {} секунд перед следующим запросом", remaining);
+                            if let Err(e) = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await {
+                                error!("Ошибка отправки таймаута: {}", e);
+                                return;
+                            }
+                            continue;
+                        }
+                        
+                        // Проверяем, не обрабатывается ли уже запрос
+                        if is_processing {
+                            if let Err(e) = socket.send(axum::extract::ws::Message::Text("Обрабатывается предыдущий запрос, подождите...".into())).await {
+                                error!("Ошибка отправки сообщения об обработке: {}", e);
+                                return;
+                            }
+                            continue;
+                        }
+                        
+                        is_processing = true;
+                        last_request_time = now;
+                        
                         // Обрабатываем текстовое сообщение
                         let user_text = text.strip_prefix("text:").unwrap_or(&text);
                         info!("Получен текст: {}", user_text);
@@ -130,6 +161,7 @@ async fn handle_websocket(mut socket: WebSocket) {
                                 info!("Ответ на текст: {}", response);
                                 if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
                                     error!("Ошибка отправки ответа на текст: {}", e);
+                                    is_processing = false;
                                     return;
                                 }
                             }
@@ -138,10 +170,13 @@ async fn handle_websocket(mut socket: WebSocket) {
                                 let error_msg = format!("Ошибка: {}", e);
                                 if let Err(e) = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await {
                                     error!("Ошибка отправки ошибки: {}", e);
+                                    is_processing = false;
                                     return;
                                 }
                             }
                         }
+                        
+                        is_processing = false;
                     }
                 }
                 Ok(axum::extract::ws::Message::Close(_)) => {
@@ -158,6 +193,30 @@ async fn handle_websocket(mut socket: WebSocket) {
 
         // Если получили данные, обрабатываем их
         if recording && !all_data.is_empty() {
+            // Проверяем таймаут для веб-клиентов (5 секунд)
+            let now = std::time::Instant::now();
+            if is_web_client && now.duration_since(last_request_time).as_secs() < 5 {
+                let remaining = 5 - now.duration_since(last_request_time).as_secs();
+                let error_msg = format!("Подождите {} секунд перед следующим запросом", remaining);
+                if let Err(e) = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await {
+                    error!("Ошибка отправки таймаута: {}", e);
+                    return;
+                }
+                continue;
+            }
+            
+            // Проверяем, не обрабатывается ли уже запрос
+            if is_processing {
+                if let Err(e) = socket.send(axum::extract::ws::Message::Text("Обрабатывается предыдущий запрос, подождите...".into())).await {
+                    error!("Ошибка отправки сообщения об обработке: {}", e);
+                    return;
+                }
+                continue;
+            }
+            
+            is_processing = true;
+            last_request_time = now;
+            
             info!("Получено {} байт аудио", all_data.len());
 
             match process_audio_with_context(&groq_client, all_data, &mut conversation_history).await {
@@ -165,6 +224,7 @@ async fn handle_websocket(mut socket: WebSocket) {
                     info!("Ответ: {}", response);
                     if let Err(e) = socket.send(axum::extract::ws::Message::Text(response.into())).await {
                         error!("Ошибка отправки ответа: {}", e);
+                        is_processing = false;
                         return;
                     }
                 }
@@ -173,10 +233,13 @@ async fn handle_websocket(mut socket: WebSocket) {
                     let error_msg = format!("Ошибка: {}", e);
                     if let Err(e) = socket.send(axum::extract::ws::Message::Text(error_msg.into())).await {
                         error!("Ошибка отправки ошибки: {}", e);
+                        is_processing = false;
                         return;
                     }
                 }
             }
+            
+            is_processing = false;
         } else if recording {
             // Если была запись, но данных нет
             let _ = socket.send(axum::extract::ws::Message::Text("Нет аудио данных".to_string().into())).await;
