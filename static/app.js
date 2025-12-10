@@ -8,7 +8,6 @@ class VoiceAssistant {
         this.requestCount = 0;
         this.startTime = null;
         this.lastRequestTime = 0;
-        this.spacePressed = false;
         
         this.initElements();
         this.initWebSocket();
@@ -179,26 +178,7 @@ class VoiceAssistant {
         // Clear chat button
         this.clearChatBtn.addEventListener('click', () => this.clearChat());
 
-        // Keyboard shortcuts with spam protection
-        this.spacePressed = false;
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !this.isRecording && !this.spacePressed && !this.isProcessing) {
-                // Проверяем что фокус не на текстовом поле
-                if (document.activeElement !== this.messageInput) {
-                    e.preventDefault();
-                    this.spacePressed = true;
-                    this.startRecording();
-                }
-            }
-        });
 
-        document.addEventListener('keyup', (e) => {
-            if (e.code === 'Space' && this.isRecording && this.spacePressed) {
-                e.preventDefault();
-                this.spacePressed = false;
-                this.stopRecording();
-            }
-        });
 
         // Закрываем соединение при закрытии страницы
         window.addEventListener('beforeunload', () => {
