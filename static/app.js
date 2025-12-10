@@ -348,46 +348,128 @@ class VoiceAssistant {
 
     setupDragAndDrop(container) {
         let draggedElement = null;
+        let placeholder = null;
 
         container.addEventListener('dragstart', (e) => {
             draggedElement = e.target.closest('[draggable="true"]');
             if (draggedElement) {
-                draggedElement.classList.add('dragging');
+                // Создаем placeholder
+                placeholder = draggedElement.cloneNode(true);
+                placeholder.classList.add('drag-placeholder');
+                placeholder.removeAttribute('draggable');
+                
+                // Вставляем placeholder на место оригинала
+                draggedElement.parentNode.insertBefore(placeholder, draggedElement);
+                
+                // Скрываем оригинал
+                draggedElement.style.display = 'none';
+                
                 e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', '');
             }
         });
 
         container.addEventListener('dragend', (e) => {
             if (draggedElement) {
-                draggedElement.classList.remove('dragging');
+                // Показываем оригинал обратно
+                draggedElement.style.display = '';
+                
+                // Удаляем placeholder
+                if (placeholder && placeholder.parentNode) {
+                    placeholder.parentNode.removeChild(placeholder);
+                }
+                
+                // Очищаем все временные классы
+                container.querySelectorAll('.drag-over').forEach(el => {
+                    el.classList.remove('drag-over');
+                });
+                
                 draggedElement = null;
+                placeholder = null;
             }
         });
 
         container.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
+            
+            if (!draggedElement) return;
+            
+            const afterElement = this.getDragAfterElement(container, e.clientX, e.clientY);
+            
+            if (afterElement == null) {
+                container.appendChild(placeholder);
+            } else {
+                container.insertBefore(placeholder, afterElement);
+            }
+        });
+
+        container.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            const target = e.target.closest('[draggable="true"]');
+            if (target && target !== draggedElement) {
+                target.classList.add('drag-over');
+            }
+        });
+
+        container.addEventListener('dragleave', (e) => {
+            const target = e.target.closest('[draggable="true"]');
+            if (target) {
+                target.classList.remove('drag-over');
+            }
         });
 
         container.addEventListener('drop', (e) => {
             e.preventDefault();
-            const dropTarget = e.target.closest('[draggable="true"]');
             
-            if (draggedElement && dropTarget && draggedElement !== dropTarget) {
-                const rect = dropTarget.getBoundingClientRect();
-                const isAfter = e.clientX > rect.left + rect.width / 2;
-                
-                if (isAfter) {
-                    dropTarget.parentNode.insertBefore(draggedElement, dropTarget.nextSibling);
-                } else {
-                    dropTarget.parentNode.insertBefore(draggedElement, dropTarget);
-                }
+            if (draggedElement && placeholder) {
+                // Заменяем placeholder на оригинальный элемент
+                placeholder.parentNode.insertBefore(draggedElement, placeholder);
+                placeholder.parentNode.removeChild(placeholder);
                 
                 // Сохраняем новый порядок
-                const order = Array.from(container.children).map(card => card.dataset.id);
+                const order = Array.from(container.children)
+                    .filter(card => card.dataset && card.dataset.id)
+                    .map(card => card.dataset.id);
                 this.saveCardOrder(container, order);
             }
         });
+    }
+
+    getDragAfterElement(container, x, y) {
+        const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
+        
+        return draggableElements.reduce((closest, child) => {
+            if (child === draggedElement) return closest;
+            
+            const box = child.getBoundingClientRect();
+            
+            // Для горизонтального расположения (hero features)
+            if (container.id === 'heroFeatures') {
+                const offset = x - box.left - box.width / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            } 
+            // Для сетки (stats grid)
+            else {
+                const centerX = box.left + box.width / 2;
+                const centerY = box.top + box.height / 2;
+                
+                // Определяем позицию относительно центра элемента
+                const offsetX = x - centerX;
+                const offsetY = y - centerY;
+                
+                if (offsetX < 0 && Math.abs(offsetX) > Math.abs(closest.offset)) {
+                    return { offset: offsetX, element: child };
+                } else {
+                    return closest;
+                }
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
     getCurrentTime() {
